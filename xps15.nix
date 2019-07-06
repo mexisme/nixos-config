@@ -18,9 +18,6 @@
       ./modules/home-manager
     ];
 
-  # hardware.nvidiaOptimus.enable = true;
-  time.hardwareClockInLocalTime = true;
-
   boot = {
     kernelParams = [ "acpi_rev_override=1"
                      "pcie_aspm=off" ];
@@ -50,6 +47,16 @@
       options iwldvm force_cam=N
     '';
   };
+
+  services.xserver.displayManager.sessionCommands = ''
+      ${pkgs.xorg.xrandr}/bin/xrandr --dpi 192
+  '';
+
+  environment.variables = {
+    GDK_SCALE = "2";
+    GDK_DPI_SCALE = "0.5";
+  };
+
 
   networking = {
     hostName = "xps15";

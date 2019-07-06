@@ -3,7 +3,7 @@
 {
   imports =
     [
-       <nixpkgs/nixos/modules/installer/scan/not-detected.nix>
+      <nixpkgs/nixos/modules/installer/scan/not-detected.nix>
       ./modules/base.nix
       ./modules/efi.nix
       ./modules/firewall.nix
@@ -47,10 +47,30 @@
     fileSystems = ["/mnt/data"];
   };
 
+  fonts.fontconfig = {
+    dpi = 132;
+  };
+
   services.xserver = {
     videoDrivers = ["nvidia"];
-    displayManager.gdm.wayland = false;
+    dpi = 132;
+    xrandrHeads = [
+      {
+        output = "DP-1";
+        primary = true;
+      }
+      {
+        output = "HDMI-0";
+        monitorConfig = "Option \"RightOf\" \"DP-1\"";
+      }
+    ];
   };
+
+  environment.variables = {
+    GDK_SCALE = "1";
+    GDK_DPI_SCALE = "1";
+  };
+
 
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/ae2bf910-85a4-4fba-928a-bc15619473f6";
@@ -81,10 +101,10 @@
     options = ["compress=lzo"];
   };
 
- swapDevices = [{
-   device = "/dev/disk/by-id/ata-Samsung_SSD_860_PRO_512GB_S42YNF0K914671W-part2";
-   randomEncryption = true;
- }];
+  swapDevices = [{
+    device = "/dev/disk/by-id/ata-Samsung_SSD_860_PRO_512GB_S42YNF0K914671W-part2";
+    randomEncryption = true;
+  }];
 
   nix.maxJobs = lib.mkDefault 8;
 }

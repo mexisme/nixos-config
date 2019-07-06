@@ -18,6 +18,14 @@
 
 
   boot = {
+    kernelParams = [ "i915.enable_fbc=1"
+                     "i915.enable_rc6=1"
+                     "i915.fastboot=1"
+                     "i915.disable_power_well=0"
+                     "i915.enable_psr=1"
+                   ];
+
+
     kernelModules = [ "kvm-intel" ];
 
     initrd = {
@@ -40,7 +48,6 @@
       ];
     };
     extraModprobeConfig = ''
-      options i915 enable_fbc=1 enable_rc6=1 modeset=1
       options iwlwifi power_save=Y
       options iwldvm force_cam=N
     '';
@@ -55,6 +62,21 @@
   networking.hostName = "xps13";
 
   i18n.consoleFont = "latarcyrheb-sun32";
+
+  services.xserver = {
+    dpi = 192;
+    displayManager.sessionCommands = ''
+      xrdb -merge "${pkgs.writeText "xrdb.conf" ''
+        Xcursor.theme: Adwaita
+        Xcursor.size: 48
+      ''}"
+    '';
+  };
+
+  environment.variables = {
+    GDK_SCALE = "2";
+    GDK_DPI_SCALE = "0.5";
+  };
 
   fileSystems = {
     "/" = {

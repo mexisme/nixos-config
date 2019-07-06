@@ -1,12 +1,5 @@
 { config, pkgs, ... }:
-let
-  # stable = import (pkgs.fetchFromGitHub {
-  #   owner = "NixOS";
-  #   repo = "nixpkgs-channels";
-  #   rev = "9d608a6f592144b5ec0b486c90abb135a4b265eb";
-  #   sha256 = "03brvnpqxiihif73agsjlwvy5dq0jkfi2jh4grp4rv5cdkal449k";
-  # }) {};
-in
+
 {
   nixpkgs = {
     config = {
@@ -32,7 +25,7 @@ in
     kernelPackages = pkgs.linuxPackagesFor pkgs.linux_5_1;
     kernelParams = [ "usb-storage.quirks=152d:0578:u,0dc4:0210:u" ];
     extraModprobeConfig = ''
-      options usb-storage quirks="152d:0578:u,0dc4:0210:u"
+      options usb-storage quirks=152d:0578:u,0dc4:0210:u
     '';
   };
 
@@ -68,6 +61,7 @@ in
     (pass.withExtensions (e: [e.pass-otp]))
     patchelf
     pciutils
+    pinentry
     powertop
     psmisc
     python
@@ -93,13 +87,9 @@ in
     gitFull
   ]);
 
-  programs = {
-    zsh = {
-      enable = true;
-    };
-  };
-
   virtualisation.docker.enable = true;
+
+  services.localtime.enable = true;
 
   services.btrfs = {
     autoScrub = {
@@ -108,6 +98,8 @@ in
     };
   };
 
+  programs.gnupg.agent.enable = true;
+  programs.ssh.startAgent = true;
   services.fwupd.enable = true;
 
   services.openssh = {
@@ -139,7 +131,7 @@ in
         home = "/home/silvio";
         description = "Silvio Böhler";
         isNormalUser = true;
-        extraGroups = ["wheel" "docker" "libvirtd" "audio" "transmission" "networkmanager" "cdrom"];
+        extraGroups = ["wheel" "docker" "libvirtd" "audio" "video" "transmission" "networkmanager" "cdrom"];
         uid = 1000;
         openssh.authorizedKeys.keys = ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFqXLmL2FVGAkSlndgqaEDx0teA6Ai1wLu21KSdcBnV6XldetAHZ8AAeodgEqIYD/sO69xCm9Kwa3DbktdMO28MO6A7poQ4jvDVHray7mpsm3z5xgc1HAadjNUBvlPjPBbCvZkhcI2/MSvVknl5uFXeH58AqaIq6Ump4gIC27Mj9vLMuw7S5MoR6vJgxKK/h52yuKXs8bisBvrHYngBgxA0wpg/v3G04iplPtTtyIY3uqkgPv3VfMSEyOuZ+TLujFg36FxU5I7Ok0Bjf8f+/OdE41MYYUH1VPIHFtxNs8MPCcz2Sv0baxEhAiEBpnWsQx8mBhxmQ/cK4Ih2EOLqPKR"];
       };
@@ -150,13 +142,6 @@ in
   };
 
   security = {
-    pam = {
-      services.gdm.enableGnomeKeyring = true;
-      services.passwd = {
-        enableGnomeKeyring = true;
-      };
-    };
-
     sudo = {
       enable = true;
       wheelNeedsPassword = false;

@@ -5,8 +5,6 @@
     packageOverrides = pkgs: rec {
       yarn = pkgs.yarn.override { nodejs = pkgs.nodejs-10_x; };
 
-      rofi-launcher = pkgs.callPackage ./rofi {};
-
       haskell = pkgs.haskell // {
         packages = pkgs.haskell.packages // {
           ghc865 = pkgs.haskell.packages.ghc865.override {
@@ -18,9 +16,10 @@
           };
         };
       };
+
       haskellPackages = haskell.packages.ghc865;
 
-      html2text = pkgs.html2text.overrideAttrs (oldAttrs: rec {
+      html2text = pkgs.html2text.overrideAttrs (_: rec {
         patches = [
           ./html2text/100-fix-makefile.patch
           ./html2text/200-close-files-inside-main-loop.patch
@@ -40,6 +39,9 @@
       });
     };
   };
+
+  services.geoclue2.enable = true;
+  services.localtime.enable = true;
 
   nix = {
     binaryCaches = [
@@ -64,35 +66,45 @@
   documentation.dev.enable = true;
 
   programs.browserpass.enable = true;
+  hardware.brightnessctl.enable = true;
+
+  programs.ssh.startAgent = true;
 
   environment.systemPackages = with pkgs; [
     adwaita-qt
+    alacritty
     ansible
+    arandr
     beancount
+    brightnessctl
     chromium
+    compton
     darktable
     digikam
     dhall
     dhall-json
     direnv
     docker_compose
+    dunst
     emacs
     evince
-    # firefox
-    (if config.services.xserver.displayManager.gdm.wayland
-      then firefox-wayland
-      else firefox)
+    firefox
     fdupes
     git-review
     gradle
     gthumb
     # gnome-podcasts
     gnome3.polari
+    gnome3.adwaita-icon-theme
+    hicolor-icon-theme
+    gnome3.nautilus
+    gnome3.geary
+    gnome3.gnome-screenshot
+    # gnome3.gnome-terminal
     gst-plugins-bad
     gst-plugins-base
     gst-plugins-good
     gst-plugins-ugly
-    gnome3.geary
     gnumake
     hplip
     html2text
@@ -113,19 +125,19 @@
     nodePackages.node2nix
     pavucontrol
     pandoc
+    pinentry
+    postgresql
+    playerctl
     python3
     # qt5.full
     # libsForQt5.qtstyleplugins
     # libsForQt5.libkipi
     racket
-    rofi
-    rofi-launcher
     rubber
     sbcl
     shared_mime_info
     spotify
-    termite
-    tilix
+    stack
     (texlive.combine {
       inherit (texlive) scheme-medium moderncv cmbright wrapfig capt-of;
     })
@@ -133,51 +145,69 @@
     exiftool
     tabula
     # tor-browser-bundle-bin
+    udiskie
     vanilla-dmz
     vlc
     xiccd
     w3m
     yarn
+    xss-lock
     zip
   ]
-  ++ (with pkgs.gnomeExtensions; [
-    # system-monitor
-    caffeine
-    # no-title-bar
-    dash-to-panel
-  ])
-
-    ++ (with pkgs.haskellPackages; [
-      beans
-      cabal-install
-      apply-refact
-      cabal2nix
-      # hasktags
-      hindent
-      # hlint
-      hpack
-      # stylish-haskell
-    ]);
+  ++ (with pkgs.haskellPackages; [
+    beans
+    cabal-install
+    apply-refact
+    cabal2nix
+    # hasktags
+    hindent
+    # hlint
+    hpack
+    # stylish-haskell
+  ]);
 
   hardware.pulseaudio.enable = true;
 
+  services.actkbd = {
+    enable = true;
+    bindings = [
+      {
+        keys = [ 224 ];
+        events = [ "key" ];
+        command = "${pkgs.brightnessctl}/bin/brightnessctl set 5%- -n 1";
+      }
+      {
+        keys = [ 225 ];
+        events = [ "key" ];
+        command = "${pkgs.brightnessctl}/bin/brightnessctl set +5%";
+      }
+    ];
+  };
+
+
   services.udisks2.enable = true;
+  services.gnome3.gvfs.enable = true;
+  services.gnome3.gnome-disks.enable = true;
 
   powerManagement.enable = true;
 
   services.xserver = {
     enable = true;
-    displayManager.gdm.enable = true;
-    desktopManager.gnome3.enable = true;
+    libinput = {
+      enable = true;
+      naturalScrolling = true;
+      clickMethod = "clickfinger";
+    };
   };
 
-  services.emacs = {
-    install = true;
-    enable = true;
-    defaultEditor = true;
-  };
+  hardware.bluetooth.enable = true;
 
-  systemd.user.services.emacs.environment.SSH_AUTH_SOCK = "%t/keyring/ssh";
+  services.emacs.install = true;
+
+  services.dbus.packages = [
+    pkgs.gnome3.dconf
+    pkgs.blueman
+  ];
 
   services.tor = {
     enable = true;
@@ -196,10 +226,13 @@
     enableDefaultFonts = true;
     fonts = with pkgs; [
       corefonts
+      emojione
       dejavu_fonts
       source-code-pro
       google-fonts
+      font-awesome
       liberation_ttf
+      # nerdfonts
       carlito
       inconsolata
     ];
