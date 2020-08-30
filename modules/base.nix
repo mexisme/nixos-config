@@ -1,64 +1,86 @@
-{ config, pkgs, ... }:
-
+{ config, pkgs, lib, stdenv, ... }:
 {
+  imports = [
+    <home-manager/nixos>
+    ./users.nix
+  ];
+
   nixpkgs = {
     config = {
       allowUnfree = true;
+      packageOverrides = pkgs: {
+        xterm-24bit = pkgs.callPackage ./sys/xterm-24bit.nix {};
+      };
     };
   };
 
   nix = {
     buildCores = 0;
+    maxJobs = lib.mkDefault 4;
     autoOptimiseStore = true;
     nixPath = [
       "/nix"
       "nixos-config=/etc/nixos/configuration.nix"
     ];
+    binaryCaches = [
+      "https://cache.nixos.org/"
+      "https://all-hies.cachix.org"
+      "https://nixcache.reflex-frp.org"
+      "https://hercules-ci.cachix.org"
+    ];
+    binaryCachePublicKeys = [
+      "hie-nix.cachix.org-1:EjBSHzF6VmDnzqlldGXbi0RM3HdjfTU3yDRi9Pd0jTY="
+      "ryantrinkle.com-1:JJiAKaRv9mWgpVAz8dwewnZe0AzzEAzPkagE9SP5NWI="
+      "hercules-ci.cachix.org-1:ZZeDl9Va+xe9j+KqdzoBZMFJHVQ42Uu/c/1/KMC5Lw0="
+    ];
+    trustedUsers = [ "root" "silvio" ];
+  };
+
+  console = {
+    keyMap = "us";
   };
 
   i18n = {
-    consoleKeyMap = "us";
     defaultLocale = "en_US.UTF-8";
   };
 
   boot = {
-    kernelPackages = pkgs.linuxPackagesFor pkgs.linux_5_1;
-    kernelParams = [ "usb-storage.quirks=152d:0578:u,0dc4:0210:u" ];
-    extraModprobeConfig = ''
-      options usb-storage quirks=152d:0578:u,0dc4:0210:u
-    '';
+    kernelPackages = pkgs.linuxPackagesFor pkgs.linux_5_4;
   };
 
   hardware = {
-    enableAllFirmware = true;
+    enableRedistributableFirmware = true;
     cpu = {
       amd.updateMicrocode = true;
       intel.updateMicrocode = true;
     };
   };
 
-  environment.pathsToLink = [ "/share/zsh" ];
-
   environment.systemPackages = with pkgs; [
+    # lorri
+    # niv
     ack
     bind
-    borgbackup
+    cifs-utils
+    cryptsetup
     direnv
+    emacs
     exfat
     file
+    git-crypt
+    gitFull
+    gnumake
     gnupg
     gptfdisk
-    gopass
-    htop
     hdparm
+    htop
     iotop
     jnettop
-    gnumake
     ncftp
-    nix-prefetch-scripts
     neovim
+    nix-prefetch-scripts
+    nmap
     nvme-cli
-    (pass.withExtensions (e: [e.pass-otp]))
     patchelf
     pciutils
     pinentry
@@ -79,66 +101,74 @@
     unzip
     upower
     wget
-    # stable.haskellPackages.git-annex
-  ] ++ (with gitAndTools; [
-    git-annex
-    git-annex-remote-b2
-    git-annex-remote-rclone
-    gitFull
-  ]);
+    xorg.xrdb
+    xterm-24bit
+    wget
+  ];
 
-  virtualisation.docker.enable = true;
+  time.timeZone = "Europe/Zurich";
 
-  services.localtime.enable = true;
-
-  services.btrfs = {
-    autoScrub = {
-      enable = true;
-      fileSystems = [ "/" ];
-    };
-  };
-
-  programs.gnupg.agent.enable = true;
-  programs.ssh.startAgent = true;
-  services.fwupd.enable = true;
-
-  services.openssh = {
-    enable = true;
-    passwordAuthentication = false;
-  };
-
-  services.fstrim.enable = true;
-
-  services.timesyncd.enable = true;
-
-  services.avahi = {
-    enable = true;
-    nssmdns = true;
-    ipv6 = true;
-    publish = {
-      enable = true;
-      domain = true;
-      addresses = true;
-      hinfo = true;
-      workstation = true;
-    };
-  };
-
-  users = {
-    defaultUserShell = pkgs.zsh;
-    extraUsers = {
-      silvio = {
-        home = "/home/silvio";
-        description = "Silvio Böhler";
-        isNormalUser = true;
-        extraGroups = ["wheel" "docker" "libvirtd" "audio" "video" "transmission" "networkmanager" "cdrom"];
-        uid = 1000;
-        openssh.authorizedKeys.keys = ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFqXLmL2FVGAkSlndgqaEDx0teA6Ai1wLu21KSdcBnV6XldetAHZ8AAeodgEqIYD/sO69xCm9Kwa3DbktdMO28MO6A7poQ4jvDVHray7mpsm3z5xgc1HAadjNUBvlPjPBbCvZkhcI2/MSvVknl5uFXeH58AqaIq6Ump4gIC27Mj9vLMuw7S5MoR6vJgxKK/h52yuKXs8bisBvrHYngBgxA0wpg/v3G04iplPtTtyIY3uqkgPv3VfMSEyOuZ+TLujFg36FxU5I7Ok0Bjf8f+/OdE41MYYUH1VPIHFtxNs8MPCcz2Sv0baxEhAiEBpnWsQx8mBhxmQ/cK4Ih2EOLqPKR"];
-      };
-      root = {
-        openssh.authorizedKeys.keys = ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFqXLmL2FVGAkSlndgqaEDx0teA6Ai1wLu21KSdcBnV6XldetAHZ8AAeodgEqIYD/sO69xCm9Kwa3DbktdMO28MO6A7poQ4jvDVHray7mpsm3z5xgc1HAadjNUBvlPjPBbCvZkhcI2/MSvVknl5uFXeH58AqaIq6Ump4gIC27Mj9vLMuw7S5MoR6vJgxKK/h52yuKXs8bisBvrHYngBgxA0wpg/v3G04iplPtTtyIY3uqkgPv3VfMSEyOuZ+TLujFg36FxU5I7Ok0Bjf8f+/OdE41MYYUH1VPIHFtxNs8MPCcz2Sv0baxEhAiEBpnWsQx8mBhxmQ/cK4Ih2EOLqPKR silvio"];
+  services= {
+    btrfs = {
+      autoScrub = {
+        enable = true;
+        fileSystems = [ "/" ];
       };
     };
+
+    fwupd.enable = true;
+
+    fstrim.enable = true;
+
+    timesyncd.enable = true;
+
+    openssh = {
+      enable = true;
+      passwordAuthentication = false;
+      forwardX11 = true;
+      permitRootLogin = "no";
+      openFirewall = false;
+    };
+  };
+
+  programs = {
+    ssh = {
+      startAgent = true;
+      extraConfig = ''
+        AddKeysToAgent yes
+      '';
+    };
+
+    zsh = {
+      enable = true;
+      enableCompletion = true;
+      histSize = 100000;
+      promptInit = ''
+        autoload -U promptinit && promptinit && prompt suse && setopt prompt_sp
+        '';
+      interactiveShellInit = ''
+        HYPHEN_INSENSITIVE="true"
+        WORDCHARS=
+        if [ -f .nix-profile/etc/profile.d/hm-session-vars.sh ]; then
+          source  .nix-profile/etc/profile.d/hm-session-vars.sh
+        fi
+      '';
+      setOptions =  [
+        "hist_ignore_dups"
+        "share_history"
+        "hist_fcntl_lock"
+        "auto_cd"
+        "extended_glob"
+      ];
+    };
+
+    gnupg.agent.enable = true;
+
+    iftop.enable = true;
+
+    iotop.enable = true;
+
+    mtr.enable = true;
   };
 
   security = {
@@ -148,5 +178,5 @@
     };
   };
 
-  system.stateVersion = "19.09";
+  system.stateVersion = "20.03";
 }
